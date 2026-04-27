@@ -1,0 +1,118 @@
+services:
+  nginx:
+    image: nginx:latest
+    container_name: nginx
+    ports:
+      - "8080:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx_https.conf:/etc/nginx/nginx.conf:ro
+      - ./certs:/etc/nginx/certs:ro
+    depends_on:
+      - api1
+      - api2
+      - api3
+
+  api1:
+    build: ./api
+    container_name: api1
+    hostname: api1
+    environment:
+      - SERVICE_NAME=api1
+      - JWT_SECRET=supersecret
+      - RABBITMQ_HOST=rabbitmq
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_NAME=secure_system
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres
+      - SERVICE_AUTH_TOKEN=internal-secret
+    depends_on:
+      - db
+      - rabbitmq
+
+  api2:
+    build: ./api
+    container_name: api2
+    hostname: api2
+    environment:
+      - SERVICE_NAME=api2
+      - JWT_SECRET=supersecret
+      - RABBITMQ_HOST=rabbitmq
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_NAME=secure_system
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres
+      - SERVICE_AUTH_TOKEN=internal-secret
+    depends_on:
+      - db
+      - rabbitmq
+
+  api3:
+    build: ./api
+    container_name: api3
+    hostname: api3
+    environment:
+      - SERVICE_NAME=api3
+      - JWT_SECRET=supersecret
+      - RABBITMQ_HOST=rabbitmq
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_NAME=secure_system
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres
+      - SERVICE_AUTH_TOKEN=internal-secret
+    depends_on:
+      - db
+      - rabbitmq
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+
+  worker:
+    build: ./worker
+    container_name: worker
+    environment:
+      - SERVICE_NAME=worker
+      - RABBITMQ_HOST=rabbitmq
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_NAME=secure_system
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres
+      - SERVICE_AUTH_TOKEN=internal-secret
+    depends_on:
+      - db
+      - rabbitmq
+
+  db:
+    image: postgres:15
+    container_name: db
+    environment:
+      - POSTGRES_DB=secure_system
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql
+
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@admin.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - "5050:80"
+    depends_on:
+      - db
+
+volumes:
+  postgres_data:
